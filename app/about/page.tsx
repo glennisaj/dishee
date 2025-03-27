@@ -20,9 +20,9 @@ export default function AboutPage() {
               The Journey Behind This Project
             </h2>
             <p className="text-lg text-zinc-600 leading-relaxed">
-              This site is a testament to my curiosity and commitment to expanding my technical skills. 
-              Leveraging AI tools like Cursor, Replit, and the OpenAI API, I've created a platform 
-              inspired by trends I've observed on social media and my own interests.
+              Everyone has been vibe coding, so I thought I'd join in. 
+              Using AI tools like Cursor, Replit, and the OpenAI API, I've created this site
+              inspired by trends I've observed on social media(Tiktok influencers posting places to eat and what to get), my friends doing the same, and having my own interest in food.
             </p>
           </section>
 
