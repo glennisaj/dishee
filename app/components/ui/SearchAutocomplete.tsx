@@ -1,8 +1,10 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, Loader2 } from 'lucide-react'
+import { Search, Loader2, MapPin } from 'lucide-react'
 import { getPlacePredictions } from '@/utils/google-places'
+import Image from 'next/image'
+import { getLocationFromIP } from '@/utils/geolocation'
 
 interface Prediction {
   id: string
@@ -18,69 +20,105 @@ export default function SearchAutocomplete() {
   const [error, setError] = useState<string | null>(null)
   const debounceTimeout = useRef<NodeJS.Timeout>()
   const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null)
+  const [locationError, setLocationError] = useState<string | null>(null)
+  const componentRef = useRef<HTMLDivElement>(null) // Add ref for the component
 
-  // Get user's location on component mount
+  // Handle clicks outside the component
   useEffect(() => {
-    if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setUserLocation({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          })
-        },
-        (error) => {
-          console.error('Error getting location:', error)
-        }
-      )
+    function handleClickOutside(event: MouseEvent) {
+      if (componentRef.current && !componentRef.current.contains(event.target as Node)) {
+        setPredictions([]) // Clear predictions when clicking outside
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [])
 
-  // Handle input changes with debouncing
-  const handleInputChange = (value: string) => {
+  // Updated location detection with fallback
+  useEffect(() => {
+    const getLocation = async () => {
+      if ('geolocation' in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            setUserLocation({
+              lat: position.coords.latitude,
+              lng: position.coords.longitude
+            })
+            setLocationError(null)
+          },
+          async (error) => {
+            console.log('Falling back to IP-based location')
+            try {
+              const ipLocation = await getLocationFromIP()
+              setUserLocation(ipLocation)
+              setLocationError(null)
+            } catch (err) {
+              setLocationError("Using default location")
+              setUserLocation({
+                lat: 40.7128,
+                lng: -74.0060
+              })
+            }
+          }
+        )
+      } else {
+        // Browser doesn't support geolocation, use IP-based
+        const ipLocation = await getLocationFromIP()
+        setUserLocation(ipLocation)
+      }
+    }
+
+    getLocation()
+  }, [])
+
+  const handleInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
     setInput(value)
     setError(null)
 
-    // Clear previous timeout
     if (debounceTimeout.current) {
       clearTimeout(debounceTimeout.current)
     }
 
-    // Set new timeout
+    if (value.length < 3) {
+      setPredictions([])
+      return
+    }
+
+    setIsLoading(true)
     debounceTimeout.current = setTimeout(async () => {
-      if (value.length >= 3) {
-        setIsLoading(true)
-        try {
-          const results = await getPlacePredictions(value)
-          setPredictions(results)
-        } catch (err) {
-          setError('Failed to fetch suggestions')
-          setPredictions([])
-        } finally {
-          setIsLoading(false)
-        }
-      } else {
-        setPredictions([])
+      try {
+        const results = await getPlacePredictions(value, userLocation || undefined)
+        setPredictions(results)
+      } catch (err) {
+        console.error('Error fetching predictions:', err)
+        setError('Failed to fetch suggestions')
+      } finally {
+        setIsLoading(false)
       }
-    }, 300) // 300ms debounce
+    }, 300)
   }
 
   const handleSelectPlace = (prediction: Prediction) => {
     router.push(`/results/${prediction.id}`)
+    setPredictions([]) // Clear predictions after selection
+    setInput('') // Optional: clear input after selection
   }
 
   return (
-    <div className="relative w-full max-w-2xl">
+    <div ref={componentRef} className="relative w-full max-w-xl mx-auto">
       <div className="relative">
         <input
           type="text"
           value={input}
-          onChange={(e) => handleInputChange(e.target.value)}
+          onChange={handleInputChange}
           placeholder="Search for a restaurant..."
-          className="w-full px-4 py-3 pl-10 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-          aria-label="Search restaurants"
+          className="w-full px-4 py-3 pl-10 text-sm bg-white border border-zinc-200 rounded-lg shadow-sm focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
         />
-        <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+        <div className="absolute inset-y-0 left-0 flex items-center pl-3">
           {isLoading ? (
             <Loader2 className="w-4 h-4 text-zinc-400 animate-spin" />
           ) : (
@@ -89,7 +127,13 @@ export default function SearchAutocomplete() {
         </div>
       </div>
 
-      {/* Predictions dropdown */}
+      {locationError && (
+        <div className="mt-2 flex items-center text-sm text-amber-600">
+          <MapPin className="w-4 h-4 mr-1" />
+          {locationError}
+        </div>
+      )}
+
       {predictions.length > 0 && (
         <div className="absolute z-10 w-full mt-1 bg-white rounded-lg shadow-lg border border-zinc-200">
           {predictions.map((prediction) => (

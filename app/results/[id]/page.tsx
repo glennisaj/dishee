@@ -1,6 +1,7 @@
 'use client'
 import { useState, use, useEffect } from 'react'
-import { Star } from 'lucide-react'
+import { Star, AlertCircle } from 'lucide-react'
+import { AnalyzeReviewsResponse, ErrorResponse } from '@/types/api'
 
 interface ResultsPageProps {
   params: Promise<{
@@ -11,8 +12,7 @@ interface ResultsPageProps {
 export default function ResultsPage({ params }: ResultsPageProps) {
   const { id } = use(params)
   const [isLoading, setIsLoading] = useState(true)
-  const [restaurantDetails, setRestaurantDetails] = useState<any>(null)
-  const [analysis, setAnalysis] = useState<any>(null)
+  const [data, setData] = useState<AnalyzeReviewsResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -27,15 +27,15 @@ export default function ResultsPage({ params }: ResultsPageProps) {
         })
 
         if (!response.ok) {
-          throw new Error('Failed to analyze restaurant')
+          const errorData = await response.json() as ErrorResponse
+          throw new Error(errorData.error || 'Failed to analyze restaurant')
         }
 
-        const data = await response.json()
-        setRestaurantDetails(data.restaurantName)
-        setAnalysis(data.dishes)
+        const responseData = await response.json() as AnalyzeReviewsResponse
+        setData(responseData)
       } catch (err) {
         console.error('Error:', err)
-        setError('Failed to load restaurant analysis. Please try again.')
+        setError(err instanceof Error ? err.message : 'An unexpected error occurred')
       } finally {
         setIsLoading(false)
       }
@@ -43,6 +43,28 @@ export default function ResultsPage({ params }: ResultsPageProps) {
 
     fetchData()
   }, [id])
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-zinc-50 flex items-center justify-center">
+        <div className="max-w-md w-full mx-auto p-6">
+          <div className="bg-white rounded-lg shadow-sm p-6 text-center">
+            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-zinc-900 mb-2">
+              Something went wrong
+            </h2>
+            <p className="text-zinc-600">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-4 px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   if (isLoading) {
     return (
@@ -57,54 +79,36 @@ export default function ResultsPage({ params }: ResultsPageProps) {
     )
   }
 
-  if (error) {
-    return (
-      <div className="min-h-screen bg-zinc-50">
-        <div className="container mx-auto px-4 py-16">
-          <div className="text-center">
-            <p className="text-red-500 mb-4">{error}</p>
-            <button 
-              onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-zinc-900 text-white rounded-lg hover:bg-zinc-800 transition-colors"
-            >
-              Try Again
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="min-h-screen bg-zinc-50">
       <div className="container mx-auto px-4 py-16">
         {/* Restaurant Header */}
-        {restaurantDetails && (
+        {data && data.restaurantName && (
           <div className="mb-12 text-center">
             <h1 className="text-4xl font-bold text-zinc-900 mb-4">
-              {restaurantDetails.name}
+              {data.restaurantName.name}
             </h1>
             <div className="flex items-center justify-center space-x-2 mb-3">
               <Star className="w-5 h-5 text-amber-400 fill-current" />
               <span className="text-lg font-semibold text-zinc-900">
-                {restaurantDetails.rating}
+                {data.restaurantName.rating}
               </span>
               <span className="text-zinc-500">
-                ({restaurantDetails.reviews?.length || 0} reviews)
+                ({data.restaurantName.reviews?.length || 0} reviews)
               </span>
             </div>
-            <p className="text-zinc-600">{restaurantDetails.address}</p>
+            <p className="text-zinc-600">{data.restaurantName.address}</p>
           </div>
         )}
 
         {/* Dishes Section */}
-        {analysis && (
+        {data && data.dishes && (
           <div className="max-w-4xl mx-auto">
             <h2 className="text-2xl font-semibold text-zinc-900 mb-8 text-center">
               Most Recommended Dishes
             </h2>
             <div className="space-y-6">
-              {analysis.map((dish: any, index: number) => (
+              {data.dishes.map((dish: any, index: number) => (
                 <div 
                   key={index}
                   className="bg-white rounded-xl shadow-sm p-6 transition-all hover:shadow-md"

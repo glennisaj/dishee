@@ -204,94 +204,99 @@ interface PlaceDetails {
   }[];
 }
 
-const apiKey = process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY;
+import { withRetry } from './retry'
 
-export async function getPlaceDetails(placeId: string): Promise<PlaceDetails> {
-  if (!apiKey) {
-    throw new Error('Google Places API key is not configured');
-  }
-
-  try {
-    const response = await fetch(
-      `https://places.googleapis.com/v1/places/${placeId}?fields=id,displayName,formattedAddress,rating,userRatingCount,reviews`,
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Goog-Api-Key': apiKey,
-          'X-Goog-FieldMask': 'id,displayName,formattedAddress,rating,userRatingCount,reviews'
-        }
+export async function getPlaceDetails(placeId: string) {
+  return withRetry(
+    async () => {
+      const apiKey = process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY
+      
+      if (!apiKey) {
+        throw new Error('Google Places API key is not configured')
       }
-    );
 
-    if (!response.ok) {
-      throw new Error('Failed to fetch place details');
-    }
+      const response = await fetch(
+        `https://places.googleapis.com/v1/places/${placeId}?fields=id,displayName,formattedAddress,rating,userRatingCount,reviews`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Goog-Api-Key': apiKey,
+            'X-Goog-FieldMask': 'id,displayName,formattedAddress,rating,userRatingCount,reviews'
+          }
+        }
+      )
 
-    const data = await response.json();
-    
-    return {
-      name: data.displayName.text,
-      address: data.formattedAddress,
-      rating: data.rating,
-      reviewCount: data.userRatingCount,
-      reviews: data.reviews?.map((review: any) => ({
-        text: review.text?.text || '',
-        rating: review.rating || 0,
-        time: review.relativePublishTime || ''
-      })) || []
-    };
-  } catch (error) {
-    console.error('Error fetching place details:', error);
-    throw error;
-  }
+      if (!response.ok) {
+        const error = await response.text()
+        throw new Error(`Failed to fetch place details: ${error}`)
+      }
+
+      const data = await response.json()
+      
+      return {
+        name: data.displayName.text,
+        address: data.formattedAddress,
+        rating: data.rating,
+        reviews: data.reviews?.map((review: any) => ({
+          text: review.text?.text || '',
+          rating: review.rating || 0,
+          time: review.relativePublishTime || ''
+        })) || []
+      }
+    },
+    { maxAttempts: 3, delayMs: 1000, backoff: true }
+  )
 }
 
 export async function getPlacePredictions(
   input: string,
   location?: { lat: number; lng: number }
 ) {
-  if (!apiKey) {
-    throw new Error('Google Places API key is not configured');
-  }
-
-  try {
-    const response = await fetch(
-      'https://places.googleapis.com/v1/places:searchText',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Goog-Api-Key': apiKey,
-          'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress'
-        },
-        body: JSON.stringify({
-          textQuery: input,
-          locationBias: location ? {
-            circle: {
-              center: {
-                latitude: location.lat,
-                longitude: location.lng
-              },
-              radius: 20000.0
-            }
-          } : undefined,
-          maxResultCount: 5
-        })
+  return withRetry(
+    async () => {
+      const apiKey = process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY
+      
+      if (!apiKey) {
+        throw new Error('Google Places API key is not configured')
       }
-    );
 
-    if (!response.ok) {
-      throw new Error('Failed to fetch predictions');
-    }
+      const response = await fetch(
+        'https://places.googleapis.com/v1/places:searchText',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Goog-Api-Key': apiKey,
+            'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress'
+          },
+          body: JSON.stringify({
+            textQuery: input,
+            locationBias: location ? {
+              circle: {
+                center: {
+                  latitude: location.lat,
+                  longitude: location.lng
+                },
+                radius: 20000.0
+              }
+            } : undefined,
+            maxResultCount: 5
+          })
+        }
+      )
 
-    const data = await response.json();
-    return data.places.map((place: any) => ({
-      id: place.id,
-      name: place.displayName.text,
-      address: place.formattedAddress
-    }));
-  } catch (error) {
-    console.error('Error fetching predictions:', error);
-    throw error;
-  }
+      if (!response.ok) {
+        const error = await response.text()
+        throw new Error(`Failed to fetch predictions: ${error}`)
+      }
+
+      const data = await response.json()
+      return data.places.map((place: any) => ({
+        id: place.id,
+        name: place.displayName.text,
+        address: place.formattedAddress
+      }))
+    },
+    { maxAttempts: 2, delayMs: 500, backoff: true }
+  )
 }

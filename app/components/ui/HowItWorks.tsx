@@ -1,6 +1,6 @@
 export default function HowItWorks() {
   return (
-    <div className="py-24 sm:py-32">
+    <div className="py-16 sm:py-20">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="mx-auto max-w-2xl lg:text-center">
           <h2 className="text-base font-semibold leading-7 text-violet-600">How It Works</h2>
@@ -8,8 +8,8 @@ export default function HowItWorks() {
             Find the best dishes in three easy steps
           </p>
         </div>
-        <div className="mx-auto mt-16 max-w-2xl sm:mt-20 lg:mt-24 lg:max-w-none">
-          <dl className="grid max-w-xl grid-cols-1 gap-x-8 gap-y-16 lg:max-w-none lg:grid-cols-3">
+        <div className="mx-auto mt-12 max-w-2xl sm:mt-16 lg:mt-16 lg:max-w-none">
+          <dl className="grid max-w-xl grid-cols-1 gap-x-8 gap-y-10 lg:max-w-none lg:grid-cols-3">
             <div className="flex flex-col">
               <dt className="flex items-center gap-x-3 text-base font-semibold leading-7 text-gray-900">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-600">
