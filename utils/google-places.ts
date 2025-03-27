@@ -196,6 +196,7 @@ interface PlaceDetails {
   name: string;
   address: string;
   rating: number;
+  reviewCount: number;
   reviews: {
     text: string;
     time: number;
@@ -211,33 +212,32 @@ export async function getPlaceDetails(placeId: string): Promise<PlaceDetails> {
   }
 
   try {
-    const detailsUrl = `https://places.googleapis.com/v1/places/${placeId}`;
-    
-    const response = await fetch(detailsUrl, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Goog-Api-Key': apiKey,
-        'X-Goog-FieldMask': 'id,displayName,formattedAddress,rating,reviews'
+    const response = await fetch(
+      `https://places.googleapis.com/v1/places/${placeId}?fields=id,displayName,formattedAddress,rating,userRatingCount,reviews`,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': apiKey,
+          'X-Goog-FieldMask': 'id,displayName,formattedAddress,rating,userRatingCount,reviews'
+        }
       }
-    });
+    );
 
     if (!response.ok) {
-      console.error('Place Details API Response:', await response.text());
       throw new Error('Failed to fetch place details');
     }
 
     const data = await response.json();
-    console.log('Place Details Response:', data); // Debug log
-
+    
     return {
-      name: data.displayName?.text || 'Unknown',
-      address: data.formattedAddress || 'No address available',
-      rating: data.rating || 0,
+      name: data.displayName.text,
+      address: data.formattedAddress,
+      rating: data.rating,
+      reviewCount: data.userRatingCount,
       reviews: data.reviews?.map((review: any) => ({
         text: review.text?.text || '',
-        time: review.relativePublishTime || '',
-        rating: review.rating || 0
+        rating: review.rating || 0,
+        time: review.relativePublishTime || ''
       })) || []
     };
   } catch (error) {

@@ -1,23 +1,34 @@
 import { NextResponse } from 'next/server'
 import { extractPlaceId, getPlaceDetails, findPlaceId } from '../../../utils/google-places'
+import { analyzeDishesFromReviews } from '../../../utils/openai'
 
 export async function POST(request: Request) {
   try {
     const { url } = await request.json()
 
-    // Extract CID from the URL
+    // First get the CID from the URL
     const cid = await extractPlaceId(url)
+    console.log('Extracted CID:', cid)
     
-    // Convert CID to Place ID
+    // Convert CID to proper Place ID
     const placeId = await findPlaceId(url)
-    console.log('Converted Place ID:', placeId) // Debug log
+    console.log('Converted to Place ID:', placeId)
     
-    // Get place details using the converted Place ID
+    // Get place details using the proper Place ID
     const placeDetails = await getPlaceDetails(placeId)
 
+    // Analyze reviews immediately
+    const reviews = placeDetails.reviews.map(review => ({
+      text: review.text,
+      rating: review.rating
+    }))
+
+    const dishAnalysis = await analyzeDishesFromReviews(reviews)
+
     return NextResponse.json({ 
-      restaurantId: placeId,
+      restaurantId: placeId, // Use the converted Place ID
       details: placeDetails,
+      analysis: dishAnalysis,
       status: 'success' 
     })
 
