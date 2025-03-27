@@ -1,17 +1,23 @@
 import { NextResponse } from 'next/server'
-import { extractPlaceId } from '../../../utils/google-places'
+import { extractPlaceId, getPlaceDetails, findPlaceId } from '../../../utils/google-places'
 
 export async function POST(request: Request) {
   try {
     const { url } = await request.json()
 
-    // Extract place ID from the URL
-    const placeId = await extractPlaceId(url)
+    // Extract CID from the URL
+    const cid = await extractPlaceId(url)
+    
+    // Convert CID to Place ID
+    const placeId = await findPlaceId(url)
+    console.log('Converted Place ID:', placeId) // Debug log
+    
+    // Get place details using the converted Place ID
+    const placeDetails = await getPlaceDetails(placeId)
 
-    // TODO: Add actual restaurant analysis logic here
-    // For now, we'll just return the place ID
     return NextResponse.json({ 
       restaurantId: placeId,
+      details: placeDetails,
       status: 'success' 
     })
 

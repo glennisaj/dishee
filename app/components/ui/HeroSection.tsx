@@ -8,27 +8,34 @@ export default function HeroSection() {
   const [url, setUrl] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [loadingMessage, setLoadingMessage] = useState('')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
     setIsLoading(true)
+    
+    // Set initial loading message
+    setLoadingMessage(url.includes('maps.app.goo.gl') 
+      ? 'Expanding shortened URL...' 
+      : 'Processing restaurant...')
 
     try {
-      const { isValid, urlType } = isValidGoogleMapsUrl(url)
+      const { isValid } = isValidGoogleMapsUrl(url)
       
       if (!isValid) {
         setError('Please enter a valid Google Maps URL')
         return
       }
 
-      // Call our API route (we'll create this next)
+      // Call our API route
+      setLoadingMessage('Fetching restaurant details...')
       const response = await fetch('/api/analyze-restaurant', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ url, urlType }),
+        body: JSON.stringify({ url }),
       })
 
       if (!response.ok) {
@@ -36,13 +43,12 @@ export default function HeroSection() {
       }
 
       const data = await response.json()
-      
-      // Redirect to results page with the restaurant ID
       router.push(`/results/${data.restaurantId}`)
     } catch (error) {
       setError('Error processing URL. Please try again.')
     } finally {
       setIsLoading(false)
+      setLoadingMessage('')
     }
   }
 
@@ -90,6 +96,11 @@ export default function HeroSection() {
                 {error && (
                   <p className="mt-2 text-sm text-red-500">
                     {error}
+                  </p>
+                )}
+                {isLoading && loadingMessage && (
+                  <p className="mt-2 text-sm text-zinc-600">
+                    {loadingMessage}
                   </p>
                 )}
               </div>
