@@ -1,47 +1,57 @@
 export default function HowItWorks() {
-  const steps = [
-    {
-      number: "1",
-      title: "Paste a link",
-      description: "Enter any Google Maps restaurant link to get started with your culinary exploration"
-    },
-    {
-      number: "2",
-      title: "AI analysis",
-      description: "Our AI scans recent reviews to find the most mentioned and highly rated dishes"
-    },
-    {
-      number: "3",
-      title: "Get recommendations",
-      description: "See the top dishes with context about why they're loved by other diners"
-    }
-  ]
-
   return (
-    <section className="py-20 bg-white">
-      <div className="container mx-auto px-4">
-        <h2 className="text-2xl font-bold tracking-tight sm:text-3xl mb-4 text-center">How it works</h2>
-        <p className="text-gray-600 text-center max-w-2xl mx-auto mb-12">
-          Three simple steps to discover the best dishes at any restaurant
-        </p>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
-          {/* Connecting line for desktop */}
-          <div className="hidden md:block absolute top-24 left-[calc(16.67%+1rem)] right-[calc(16.67%+1rem)] h-0.5 bg-gray-200 -z-10"></div>
-
-          {steps.map((step) => (
-            <div key={step.number} className="bg-white p-8 border border-gray-200 rounded-lg hover:border-gray-300 transition-all hover:shadow-md">
-              <div className="flex flex-col items-center text-center">
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-black/10 text-black mb-6 ring-4 ring-white">
-                  {step.number}
+    <div className="py-24 sm:py-32">
+      <div className="mx-auto max-w-7xl px-6 lg:px-8">
+        <div className="mx-auto max-w-2xl lg:text-center">
+          <h2 className="text-base font-semibold leading-7 text-violet-600">How It Works</h2>
+          <p className="mt-2 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+            Find the best dishes in three easy steps
+          </p>
+        </div>
+        <div className="mx-auto mt-16 max-w-2xl sm:mt-20 lg:mt-24 lg:max-w-none">
+          <dl className="grid max-w-xl grid-cols-1 gap-x-8 gap-y-16 lg:max-w-none lg:grid-cols-3">
+            <div className="flex flex-col">
+              <dt className="flex items-center gap-x-3 text-base font-semibold leading-7 text-gray-900">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-600">
+                  <span className="text-white">1</span>
                 </div>
-                <h3 className="text-xl font-semibold mb-3">{step.title}</h3>
-                <p className="text-gray-600">{step.description}</p>
-              </div>
+                Search for a Restaurant
+              </dt>
+              <dd className="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-600">
+                <p className="flex-auto">
+                  Type the name of any restaurant and select it from the suggestions. Our smart search helps you find the exact place you're looking for.
+                </p>
+              </dd>
             </div>
-          ))}
+            <div className="flex flex-col">
+              <dt className="flex items-center gap-x-3 text-base font-semibold leading-7 text-gray-900">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-600">
+                  <span className="text-white">2</span>
+                </div>
+                AI Analysis
+              </dt>
+              <dd className="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-600">
+                <p className="flex-auto">
+                  Our AI analyzes hundreds of recent reviews to identify the most recommended dishes at the restaurant.
+                </p>
+              </dd>
+            </div>
+            <div className="flex flex-col">
+              <dt className="flex items-center gap-x-3 text-base font-semibold leading-7 text-gray-900">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-600">
+                  <span className="text-white">3</span>
+                </div>
+                Get Recommendations
+              </dt>
+              <dd className="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-600">
+                <p className="flex-auto">
+                  See the top dishes with detailed descriptions and real customer quotes to help you order with confidence.
+                </p>
+              </dd>
+            </div>
+          </dl>
         </div>
       </div>
-    </section>
+    </div>
   )
 }

@@ -204,9 +204,9 @@ interface PlaceDetails {
   }[];
 }
 
+const apiKey = process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY;
+
 export async function getPlaceDetails(placeId: string): Promise<PlaceDetails> {
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY;
-  
   if (!apiKey) {
     throw new Error('Google Places API key is not configured');
   }
@@ -242,6 +242,56 @@ export async function getPlaceDetails(placeId: string): Promise<PlaceDetails> {
     };
   } catch (error) {
     console.error('Error fetching place details:', error);
+    throw error;
+  }
+}
+
+export async function getPlacePredictions(
+  input: string,
+  location?: { lat: number; lng: number }
+) {
+  if (!apiKey) {
+    throw new Error('Google Places API key is not configured');
+  }
+
+  try {
+    const response = await fetch(
+      'https://places.googleapis.com/v1/places:searchText',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': apiKey,
+          'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress'
+        },
+        body: JSON.stringify({
+          textQuery: input,
+          locationBias: location ? {
+            circle: {
+              center: {
+                latitude: location.lat,
+                longitude: location.lng
+              },
+              radius: 20000.0
+            }
+          } : undefined,
+          maxResultCount: 5
+        })
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch predictions');
+    }
+
+    const data = await response.json();
+    return data.places.map((place: any) => ({
+      id: place.id,
+      name: place.displayName.text,
+      address: place.formattedAddress
+    }));
+  } catch (error) {
+    console.error('Error fetching predictions:', error);
     throw error;
   }
 }
