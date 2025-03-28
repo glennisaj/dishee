@@ -10,23 +10,44 @@ export default function RecentlyAnalyzed() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    const fetchRecentRestaurants = async () => {
-      try {
-        const response = await fetch('/api/recent-restaurants')
-        if (!response.ok) throw new Error('Failed to fetch recent restaurants')
-        const data = await response.json()
-        // Take only the 4 most recent restaurants
-        setRestaurants(data.restaurants.slice(0, 4))
-      } catch (err) {
-        console.error('Error fetching recent restaurants:', err)
-        setError(err instanceof Error ? err.message : 'An error occurred')
-      } finally {
-        setIsLoading(false)
-      }
-    }
+  const fetchRecentRestaurants = async () => {
+    try {
+      setIsLoading(true)
+      const response = await fetch('/api/recent-restaurants')
+      
+      // Log the response for debugging
+      console.log('Response status:', response.status)
+      
+      const data = await response.json()
+      console.log('Received data:', data)
 
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to fetch recent restaurants')
+      }
+
+      if (!data.restaurants || !Array.isArray(data.restaurants)) {
+        console.error('Invalid data structure:', data)
+        throw new Error('Invalid response format')
+      }
+
+      setRestaurants(data.restaurants.slice(0, 4))
+      setError(null)
+    } catch (err) {
+      console.error('Error fetching recent restaurants:', err)
+      setError(err instanceof Error ? err.message : 'An error occurred')
+      setRestaurants([])
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
     fetchRecentRestaurants()
+    
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchRecentRestaurants, 30000)
+    
+    return () => clearInterval(interval)
   }, [])
 
   if (isLoading) {
@@ -37,7 +58,8 @@ export default function RecentlyAnalyzed() {
     )
   }
 
-  if (error || restaurants.length === 0) {
+  // Only hide component if there's no data AND no error
+  if (restaurants.length === 0 && !error) {
     return null
   }
 
@@ -47,41 +69,47 @@ export default function RecentlyAnalyzed() {
         <h2 className="text-2xl font-bold text-zinc-900 mb-6">
           Recently Analyzed Restaurants
         </h2>
-        {/* Updated grid layout for 4 items */}
-        <div className="grid gap-6 md:grid-cols-2">
-          {restaurants.map((restaurant) => (
-            <button
-              key={restaurant.id}
-              onClick={() => router.push(`/results/${restaurant.id}`)}
-              className="group p-6 bg-white rounded-xl border border-zinc-200 shadow-sm hover:shadow-md transition-all duration-200 text-left"
-            >
-              <div className="flex justify-between items-start mb-4">
-                <h3 className="font-semibold text-zinc-900 group-hover:text-violet-600 transition-colors">
-                  {restaurant.name}
-                </h3>
-                <ChevronRight className="w-5 h-5 text-zinc-400 group-hover:text-violet-600 transition-colors" />
-              </div>
-              
-              <p className="text-sm text-zinc-600 mb-4">
-                {restaurant.address}
-              </p>
-              
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Star className="w-4 h-4 text-amber-400" />
-                  <span className="text-sm font-medium text-zinc-900">
-                    {restaurant.rating?.toFixed(1) || 'N/A'}
-                  </span>
+        
+        {error ? (
+          <div className="text-red-500 text-sm mb-4">
+            {error}
+          </div>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2">
+            {restaurants.map((restaurant) => (
+              <button
+                key={restaurant.id}
+                onClick={() => router.push(`/results/${restaurant.id}`)}
+                className="group p-6 bg-white rounded-xl border border-zinc-200 shadow-sm hover:shadow-md transition-all duration-200 text-left"
+              >
+                <div className="flex justify-between items-start mb-4">
+                  <h3 className="font-semibold text-zinc-900 group-hover:text-violet-600 transition-colors">
+                    {restaurant.name}
+                  </h3>
+                  <ChevronRight className="w-5 h-5 text-zinc-400 group-hover:text-violet-600 transition-colors" />
                 </div>
                 
-                <div className="flex items-center text-sm text-zinc-500">
-                  <Clock className="w-4 h-4 mr-1" />
-                  {formatTimeAgo(restaurant.last_analyzed)}
+                <p className="text-sm text-zinc-600 mb-4">
+                  {restaurant.address}
+                </p>
+                
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Star className="w-4 h-4 text-amber-400" />
+                    <span className="text-sm font-medium text-zinc-900">
+                      {restaurant.rating?.toFixed(1) || 'N/A'}
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center text-sm text-zinc-500">
+                    <Clock className="w-4 h-4 mr-1" />
+                    {formatTimeAgo(restaurant.last_analyzed)}
+                  </div>
                 </div>
-              </div>
-            </button>
-          ))}
-        </div>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   )

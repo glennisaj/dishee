@@ -38,10 +38,9 @@ export interface AnalyzeReviewsRequest {
 export interface RecentlyAnalyzedRestaurant {
   id: string
   name: string
-  address: string | null
-  rating: number | null
-  last_analyzed: string | null
-  dish_count: number
+  address: string
+  rating: number
+  last_analyzed: string
 }
 
 export interface RecentlyAnalyzedResponse {

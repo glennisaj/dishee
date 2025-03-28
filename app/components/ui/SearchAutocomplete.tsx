@@ -18,7 +18,7 @@ export default function SearchAutocomplete() {
   const [predictions, setPredictions] = useState<Prediction[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const debounceTimeout = useRef<NodeJS.Timeout>()
+  const debounceTimeout = useRef<NodeJS.Timeout | undefined>()
   const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null)
   const [locationError, setLocationError] = useState<string | null>(null)
   const componentRef = useRef<HTMLDivElement>(null) // Add ref for the component
@@ -91,11 +91,14 @@ export default function SearchAutocomplete() {
     setIsLoading(true)
     debounceTimeout.current = setTimeout(async () => {
       try {
+        // Use the imported getPlacePredictions function directly
         const results = await getPlacePredictions(value, userLocation || undefined)
         setPredictions(results)
+        setError(null)
       } catch (err) {
-        console.error('Error fetching predictions:', err)
-        setError('Failed to fetch suggestions')
+        console.error('Search error:', err)
+        setError(err instanceof Error ? err.message : 'Failed to fetch suggestions')
+        setPredictions([])
       } finally {
         setIsLoading(false)
       }
@@ -134,6 +137,12 @@ export default function SearchAutocomplete() {
         </div>
       )}
 
+      {error && (
+        <div className="mt-2 text-sm text-red-500">
+          {error}
+        </div>
+      )}
+
       {predictions.length > 0 && (
         <div className="absolute z-10 w-full mt-1 bg-white rounded-lg shadow-lg border border-zinc-200">
           {predictions.map((prediction) => (
@@ -146,12 +155,6 @@ export default function SearchAutocomplete() {
               <div className="text-sm text-zinc-500">{prediction.address}</div>
             </button>
           ))}
-        </div>
-      )}
-
-      {error && (
-        <div className="mt-2 text-sm text-red-500">
-          {error}
         </div>
       )}
     </div>

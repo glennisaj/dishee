@@ -1,21 +1,30 @@
 import { NextResponse } from 'next/server'
-import { getRecentlyAnalyzed } from '@/utils/db'
-import { RecentlyAnalyzedResponse } from '@/types/api'
+import { getRecentRestaurants } from '@/utils/cache-utils'
 
 export async function GET() {
   try {
-    const restaurants = await getRecentlyAnalyzed()
+    // Add debug logging
+    console.log('Fetching recent restaurants...')
     
-    const response: RecentlyAnalyzedResponse = {
-      restaurants,
+    const restaurants = await getRecentRestaurants()
+    
+    // Log what we're returning
+    console.log('Recent restaurants:', restaurants)
+    
+    // Ensure we're returning the correct structure
+    return NextResponse.json({ 
+      restaurants: restaurants,
       status: 'success'
-    }
-
-    return NextResponse.json(response)
+    })
   } catch (error) {
-    console.error('Error fetching recent restaurants:', error)
+    console.error('Error in recent-restaurants API:', error)
+    // Return a proper error response
     return NextResponse.json(
-      { error: 'Failed to fetch recent restaurants', status: 'error' },
+      { 
+        restaurants: [],
+        status: 'error',
+        message: 'Failed to fetch recent restaurants'
+      }, 
       { status: 500 }
     )
   }

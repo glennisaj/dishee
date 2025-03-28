@@ -1,6 +1,15 @@
 import { NextResponse } from 'next/server'
 import { getPlaceDetails } from '@/utils/google-places'
 import { analyzeDishesFromReviews } from '@/utils/openai'
+import { 
+  getRestaurantFromCache, 
+  setRestaurantInCache,
+  getAnalysisFromCache,
+  setAnalysisInCache,
+  isCacheFresh,
+  addToRecentRestaurants
+} from '@/utils/cache-utils'
+import { CACHE_TIMES } from '@/utils/redis'
 import { getRestaurantWithDishes, saveRestaurantAnalysis } from '@/utils/db'
 import { 
   AnalyzeReviewsRequest, 
@@ -17,66 +26,97 @@ interface Review {
 
 export async function POST(request: Request) {
   try {
-    const { placeId }: AnalyzeReviewsRequest = await request.json()
+    const { placeId } = await request.json()
 
     if (!placeId) {
-      const errorResponse: ErrorResponse = {
+      return NextResponse.json({
         error: 'Place ID is required',
-        status: 400
-      }
-      return NextResponse.json(errorResponse, { status: 400 })
+        status: 'error'
+      }, { status: 400 })
     }
 
-    // Check cache
-    console.log('Checking cache for placeId:', placeId)
-    const cachedData = await getRestaurantWithDishes(placeId)
+    // First, try to get cached data
+    const cachedRestaurant = await getRestaurantFromCache(placeId)
+    const cachedAnalysis = await getAnalysisFromCache(placeId)
 
-    if (cachedData) {
-      console.log('Cache hit! Returning cached data')
-      const response: AnalyzeReviewsResponse = {
+    // Debug: Log the cached data structure
+    console.log('Cached Restaurant:', cachedRestaurant)
+    console.log('Cached Analysis:', cachedAnalysis)
+
+    // If we have both cached and they're fresh, return them
+    if (cachedRestaurant && cachedAnalysis) {
+      console.log('Cache hit for both restaurant and analysis')
+      return NextResponse.json({
         restaurantName: {
-          name: cachedData.name,
-          rating: cachedData.rating,
-          address: cachedData.address,
+          name: cachedRestaurant.name,
+          rating: cachedRestaurant.rating,
+          address: cachedRestaurant.address,
           reviews: {
-            length: cachedData.review_count || 0
+            length: cachedRestaurant.reviews.length
           }
         },
-        dishes: cachedData.dishes,
+        dishes: Array.isArray(cachedAnalysis.dishes.dishes) 
+          ? cachedAnalysis.dishes.dishes 
+          : cachedAnalysis.dishes,
         status: 'success',
         source: 'cache'
-      }
-      return NextResponse.json(response)
+      })
     }
 
-    console.log('Cache miss. Fetching fresh data...')
-    
-    // Get fresh data
+    // If we need to fetch fresh data
+    console.log('Cache miss - fetching fresh data')
     const placeDetails = await getPlaceDetails(placeId)
     
-    // Add proper typing for reviews
-    const reviews: Review[] = placeDetails.reviews.map((review: Review) => ({
-      text: review.text,
-      rating: review.rating
-    }))
+    // Add to recent restaurants list
+    console.log('Adding restaurant to recent list:', placeDetails.name)
+    await addToRecentRestaurants({
+      id: placeId,
+      name: placeDetails.name,
+      address: placeDetails.address,
+      rating: placeDetails.rating,
+      last_analyzed: new Date().toISOString()
+    })
 
-    const dishAnalysis = await analyzeDishesFromReviews(reviews)
+    // Cache the restaurant details
+    await setRestaurantInCache(placeId, {
+      name: placeDetails.name,
+      address: placeDetails.address,
+      rating: placeDetails.rating,
+      reviews: placeDetails.reviews,
+      lastFetched: new Date().toISOString()
+    })
 
-    // Save to cache
-    console.log('Saving analysis to cache...')
-    await saveRestaurantAnalysis(
-      placeId,
-      {
-        name: placeDetails.name,
-        address: placeDetails.address,
-        rating: placeDetails.rating,
-        review_count: placeDetails.reviews.length,
-        last_analyzed: new Date().toISOString()
-      },
-      dishAnalysis
-    )
+    // Only analyze reviews if we don't have fresh analysis
+    if (!cachedAnalysis) {
+      console.log('Analyzing reviews...')
+      const dishAnalysis = await analyzeDishesFromReviews(placeDetails.reviews)
+      
+      // Debug: Log the fresh analysis
+      console.log('Fresh Analysis:', dishAnalysis)
 
-    const response: AnalyzeReviewsResponse = {
+      // Cache the analysis with correct structure
+      await setAnalysisInCache(placeId, {
+        dishes: dishAnalysis,
+        lastAnalyzed: new Date().toISOString()
+      })
+
+      return NextResponse.json({
+        restaurantName: {
+          name: placeDetails.name,
+          rating: placeDetails.rating,
+          address: placeDetails.address,
+          reviews: {
+            length: placeDetails.reviews.length
+          }
+        },
+        dishes: dishAnalysis,
+        status: 'success',
+        source: 'fresh'
+      })
+    }
+
+    // Return fresh restaurant data with cached analysis
+    return NextResponse.json({
       restaurantName: {
         name: placeDetails.name,
         rating: placeDetails.rating,
@@ -85,19 +125,13 @@ export async function POST(request: Request) {
           length: placeDetails.reviews.length
         }
       },
-      dishes: dishAnalysis,
+      dishes: cachedAnalysis.dishes,
       status: 'success',
-      source: 'fresh'
-    }
-
-    return NextResponse.json(response)
+      source: 'mixed'
+    })
 
   } catch (error) {
-    console.error('Error analyzing reviews:', error)
-    const errorResponse: ErrorResponse = {
-      error: 'Failed to analyze reviews',
-      status: 500
-    }
-    return NextResponse.json(errorResponse, { status: 500 })
+    console.error('Error:', error)
+    return NextResponse.json({ error: 'Failed to analyze' }, { status: 500 })
   }
 }
