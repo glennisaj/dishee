@@ -27,43 +27,45 @@ interface Review {
 export async function POST(request: Request) {
   try {
     const { placeId, forceRefresh } = await request.json()
-    console.log('Analyzing reviews for placeId:', placeId) // Debug log
-
-    if (!placeId) {
-      return NextResponse.json({ error: 'Place ID is required' }, { status: 400 })
-    }
-
-    // Debug logs to track the flow
-    console.log('Fetching place details...')
-    const placeDetails = await getPlaceDetails(placeId, forceRefresh)
-    console.log('Reviews fetched:', placeDetails.reviews?.length || 0)
-
-    if (!placeDetails.reviews || placeDetails.reviews.length === 0) {
-      return NextResponse.json({ 
-        error: 'No reviews found for this restaurant',
-        status: 'error' 
-      }, { status: 404 })
-    }
-
-    console.log('Analyzing reviews with OpenAI...')
-    const analysisResult = await analyzeDishesFromReviews(placeDetails.reviews)
+    let restaurantData;
+    let dishes;
     
+    const cachedRestaurant = await getRestaurantFromCache(placeId)
+    const cachedAnalysis = await getAnalysisFromCache(placeId)
+    
+    if (cachedRestaurant && cachedAnalysis && !forceRefresh) {
+      restaurantData = cachedRestaurant
+      dishes = cachedAnalysis.dishes
+    } else {
+      // Fetch fresh data
+      restaurantData = await getPlaceDetails(placeId)
+      const analysisResult = await analyzeDishesFromReviews(restaurantData.reviews)
+      dishes = analysisResult.dishes
+      
+      // Cache the results
+      await setRestaurantInCache(placeId, restaurantData)
+      await setAnalysisInCache(placeId, {
+        dishes: dishes,
+        lastAnalyzed: new Date().toISOString()
+      })
+    }
+
+    // Single location for updating recently analyzed
     await addToRecentRestaurants({
       placeId,
-      name: placeDetails.name,
-      rating: placeDetails.rating,
-      address: placeDetails.address,
+      name: restaurantData.name,
+      address: restaurantData.address,
+      rating: restaurantData.rating,
       timestamp: new Date().toISOString()
     })
 
     return NextResponse.json({
-      restaurantName: placeDetails,
-      dishes: analysisResult.dishes,
+      restaurantName: restaurantData,
+      dishes: dishes,
       status: 'success'
     })
 
   } catch (error) {
-    console.error('Analysis failed:', error)
     return NextResponse.json({ 
       error: error instanceof Error ? error.message : 'Analysis failed',
       status: 'error'

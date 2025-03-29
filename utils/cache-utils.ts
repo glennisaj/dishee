@@ -26,13 +26,13 @@ interface AnalysisResults {
   lastAnalyzed: string
 }
 
-// Add the RecentlyAnalyzedRestaurant interface
+// Update the interface to standardize fields
 export interface RecentlyAnalyzedRestaurant {
-  id: string
-  name: string
-  address: string
-  rating: number
-  last_analyzed: string
+  placeId: string;  // Standardized to placeId
+  name: string;
+  address: string;
+  rating: number;
+  timestamp: string;  // Standardized to timestamp
 }
 
 export async function getRestaurantFromCache(placeId: string): Promise<RestaurantDetails | null> {
@@ -123,30 +123,33 @@ export async function addToRecentRestaurants(restaurant: RecentlyAnalyzedRestaur
   try {
     const key = 'recent:restaurants'
     
-    // Debug: Log the addition attempt
-    console.log('Adding to recent restaurants:', restaurant)
-    
     // Get existing list
     const recent = await redis.get(key)
-    console.log('Existing recent restaurants:', recent)
-    
-    // Initialize or use existing array
     const currentList = Array.isArray(recent) ? recent : []
     
-    // Remove duplicate if exists and add new entry to start
-    const updated = currentList
-      .filter((r: RecentlyAnalyzedRestaurant) => r.id !== restaurant.id)
-    updated.unshift(restaurant)
+    // Check if this restaurant was added in the last second
+    const recentlyAdded = currentList.find(r => 
+      r.placeId === restaurant.placeId && 
+      Math.abs(new Date(r.timestamp).getTime() - new Date(restaurant.timestamp).getTime()) < 1000
+    )
+    
+    // If recently added, skip
+    if (recentlyAdded) {
+      return
+    }
 
-    // Keep only last 5 restaurants
+    // Remove any existing entry of this restaurant
+    const updated = currentList
+      .filter(r => r.placeId !== restaurant.placeId)
+    
+    // Add new entry at the start
+    updated.unshift(restaurant)
+    
+    // Keep only the last 5
     const limited = updated.slice(0, 5)
     
-    // Debug: Log what we're saving
-    console.log('Saving recent restaurants:', limited)
-    
-    // Save with expiration
     await redis.set(key, limited, {
-      ex: CACHE_TIMES.RESTAURANT_DETAILS // Use same expiration as restaurant details
+      ex: CACHE_TIMES.RESTAURANT_DETAILS
     })
   } catch (error) {
     console.error('Error updating recent restaurants:', error)
@@ -157,18 +160,22 @@ export async function getRecentRestaurants(): Promise<RecentlyAnalyzedRestaurant
   try {
     const key = 'recent:restaurants'
     const recent = await redis.get(key)
+    console.log('Retrieved recent restaurants:', recent)
     
-    // Debug: Log what we're retrieving
-    console.log('Retrieved from Redis:', recent)
-    
-    // Ensure we always return an array
     if (!recent) return []
     if (!Array.isArray(recent)) {
       console.error('Invalid recent restaurants data structure:', recent)
       return []
     }
     
-    return recent
+    // Standardize any old format entries
+    return recent.map(r => ({
+      placeId: r.placeId || r.id,
+      name: r.name,
+      address: r.address,
+      rating: r.rating,
+      timestamp: r.timestamp || r.last_analyzed || new Date().toISOString()
+    }))
   } catch (error) {
     console.error('Error getting recent restaurants:', error)
     return []
