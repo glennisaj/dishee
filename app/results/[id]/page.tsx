@@ -1,140 +1,140 @@
 'use client'
-import { useState, use, useEffect } from 'react'
-import { Star, AlertCircle } from 'lucide-react'
-import { AnalyzeReviewsResponse, ErrorResponse } from '@/types/api'
 
-interface ResultsPageProps {
-  params: Promise<{
-    id: string
-  }>
-}
+import { useEffect, useState } from 'react'
+import { Loader2, Star, MapPin, Quote } from 'lucide-react'
+import { RestaurantDetails, DishAnalysis } from '@/types/api'
+import { useParams } from 'next/navigation'
 
-export default function ResultsPage({ params }: ResultsPageProps) {
-  const { id } = use(params)
+export default function ResultsPage() {
+  const params = useParams()
+  const placeId = decodeURIComponent(params?.id as string)
+  
+  console.log('Params received:', params)
+  console.log('PlaceId extracted:', placeId)
+  
+  const [restaurant, setRestaurant] = useState<RestaurantDetails | null>(null)
+  const [dishes, setDishes] = useState<DishAnalysis[] | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [data, setData] = useState<AnalyzeReviewsResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const fetchData = async () => {
+    async function fetchResults() {
+      if (!placeId) {
+        console.error('No placeId provided')
+        setError('Restaurant ID is missing')
+        setIsLoading(false)
+        return
+      }
+
       try {
+        console.log('Starting analysis for placeId:', placeId)
+        
         const response = await fetch('/api/analyze-reviews', {
           method: 'POST',
-          headers: {
+          headers: { 
             'Content-Type': 'application/json',
+            'Accept': 'application/json'
           },
-          body: JSON.stringify({ placeId: id }),
+          body: JSON.stringify({ 
+            placeId: placeId,
+            forceRefresh: true
+          })
         })
 
+        console.log('Response status:', response.status)
+
+        const data = await response.json()
+        console.log('API Response:', data)
+
         if (!response.ok) {
-          const errorData = await response.json() as ErrorResponse
-          throw new Error(errorData.error || 'Failed to analyze restaurant')
+          throw new Error(data.error || 'Failed to fetch results')
         }
 
-        const responseData = await response.json() as AnalyzeReviewsResponse
-        setData(responseData)
+        setRestaurant(data.restaurantName)
+        setDishes(data.dishes)
+        setIsLoading(false)
       } catch (err) {
-        console.error('Error:', err)
-        setError(err instanceof Error ? err.message : 'An unexpected error occurred')
-      } finally {
+        console.error('Error fetching results:', err)
+        setError(err instanceof Error ? err.message : 'An error occurred')
         setIsLoading(false)
       }
     }
 
-    fetchData()
-  }, [id])
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-zinc-50 flex items-center justify-center">
-        <div className="max-w-md w-full mx-auto p-6">
-          <div className="bg-white rounded-lg shadow-sm p-6 text-center">
-            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-zinc-900 mb-2">
-              Something went wrong
-            </h2>
-            <p className="text-zinc-600">{error}</p>
-            <button
-              onClick={() => window.location.reload()}
-              className="mt-4 px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-colors"
-            >
-              Try Again
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-zinc-50">
-        <div className="container mx-auto px-4 py-16">
-          <div className="flex flex-col items-center justify-center space-y-4">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-zinc-900"></div>
-            <p className="text-lg text-zinc-600">Analyzing restaurant reviews...</p>
-          </div>
-        </div>
-      </div>
-    )
-  }
+    console.log('Results page mounted with placeId:', placeId)
+    fetchResults()
+  }, [placeId])
 
   return (
-    <div className="min-h-screen bg-zinc-50">
-      <div className="container mx-auto px-4 py-16">
-        {/* Restaurant Header */}
-        {data && data.restaurantName && (
-          <div className="mb-12 text-center">
-            <h1 className="text-4xl font-bold text-zinc-900 mb-4">
-              {data.restaurantName.name}
-            </h1>
-            <div className="flex items-center justify-center space-x-2 mb-3">
-              <Star className="w-5 h-5 text-amber-400 fill-current" />
-              <span className="text-lg font-semibold text-zinc-900">
-                {data.restaurantName.rating}
-              </span>
-              <span className="text-zinc-500">
-                ({data.restaurantName.reviews?.length || 0} reviews)
-              </span>
+    <div className="container mx-auto px-4 py-8 max-w-4xl">
+      {restaurant && (
+        <div className="mb-12">
+          <h1 className="text-4xl font-bold text-zinc-900 mb-3">
+            {restaurant.name}
+          </h1>
+          <div className="flex items-center gap-4 mb-3">
+            <div className="flex items-center text-amber-500">
+              <Star className="w-5 h-5 fill-current" />
+              <span className="ml-1 font-semibold">{restaurant.rating}</span>
             </div>
-            <p className="text-zinc-600">{data.restaurantName.address}</p>
           </div>
-        )}
+          <div className="flex items-center text-zinc-600">
+            <MapPin className="w-4 h-4 mr-2" />
+            <p>{restaurant.address}</p>
+          </div>
+        </div>
+      )}
 
-        {/* Dishes Section */}
-        {data && data.dishes && (
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl font-semibold text-zinc-900 mb-8 text-center">
-              Most Recommended Dishes
-            </h2>
-            <div className="space-y-6">
-              {data.dishes.map((dish: any, index: number) => (
-                <div 
-                  key={index}
-                  className="bg-white rounded-xl shadow-sm p-6 transition-all hover:shadow-md"
-                >
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <span className="inline-block px-3 py-1 bg-violet-100 text-violet-800 text-sm font-medium rounded-full mb-2">
-                        #{dish.rank} Top Pick
-                      </span>
-                      <h3 className="text-xl font-bold text-zinc-900">
-                        {dish.name}
-                      </h3>
-                    </div>
+      {dishes && dishes.length > 0 && (
+        <div>
+          <h2 className="text-2xl font-semibold mb-8 text-zinc-900">
+            Most Recommended Dishes
+          </h2>
+          <div className="space-y-8">
+            {dishes.map((dish, index) => (
+              <div 
+                key={index}
+                className="bg-white rounded-xl shadow-sm p-6 transition-all hover:shadow-md border border-zinc-100"
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="px-3 py-1 bg-violet-100 text-violet-700 rounded-full text-sm font-medium">
+                    #{index + 1} Top Pick
                   </div>
-                  <p className="text-zinc-600 mb-4">
-                    {dish.description}
-                  </p>
-                  <blockquote className="border-l-4 border-violet-200 pl-4 italic text-zinc-600">
-                    "{dish.quote}"
-                  </blockquote>
+                  <h3 className="text-xl font-semibold text-zinc-900">
+                    {dish.name}
+                  </h3>
                 </div>
-              ))}
-            </div>
+                
+                <p className="text-zinc-700 mb-4 leading-relaxed">
+                  {dish.description}
+                </p>
+                
+                {dish.quote && (
+                  <div className="flex gap-2 items-start border-l-4 border-violet-200 pl-4">
+                    <Quote className="w-4 h-4 text-violet-400 flex-shrink-0 mt-1" />
+                    <p className="text-sm italic text-zinc-600">
+                      "{dish.quote}"
+                    </p>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {isLoading && (
+        <div className="flex flex-col items-center justify-center min-h-[400px]">
+          <Loader2 className="w-8 h-8 animate-spin text-violet-600 mb-4" />
+          <p className="text-zinc-600">Analyzing restaurant reviews...</p>
+        </div>
+      )}
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <h2 className="text-red-700 font-semibold mb-2">Error</h2>
+          <p className="text-red-600">{error}</p>
+        </div>
+      )}
     </div>
   )
 }

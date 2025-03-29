@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import { Review } from '@/types/api';
 
 if (!process.env.OPENAI_API_KEY) {
   throw new Error('Missing OPENAI_API_KEY environment variable');
@@ -20,50 +21,180 @@ interface DishAnalysis {
   quote: string;
 }
 
-export async function analyzeDishesFromReviews(reviews: Review[]): Promise<DishAnalysis[]> {
-  try {
-    const reviewTexts = reviews.map(review => `Rating: ${review.rating}/5\nReview: ${review.text}`).join('\n\n');
+// Main analysis function (using the hybrid optimized prompt)
+export async function analyzeDishesFromReviews(reviews: Review[]) {
+  const reviewTexts = reviews.map(review => review.text).join('\n\n');
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4-turbo-preview",
-      messages: [
+  const response = await openai.chat.completions.create({
+    model: "gpt-4-turbo-preview",
+    messages: [
+      {
+        role: "system",
+        content: `Analyze reviews and return exactly 3 most mentioned dishes.
+        Rules:
+        - Return only top 3 dishes by mention count
+        - Use exactly 3 words for descriptions
+        - Format: [Texture/Taste] [Main ingredient] [Standout]
+        - Example: "Crispy tender chicken" or "Spicy melting beef"
+        - Find specific, memorable quotes
+        - Skip generic terms like "delicious" or "amazing"
+        Return in JSON format.`
+      },
+      {
+        role: "user",
+        content: `Return top 3 dishes in this format:
         {
-          role: "system",
-          content: `You are a sophisticated restaurant critic who analyzes reviews to identify and describe the top 3 most positively mentioned dishes. 
-          For each dish, create an engaging description based on review patterns and select the most compelling customer quote.
-          Focus on specific dishes, not general categories like 'food' or 'dessert'.`
-        },
-        {
-          role: "user",
-          content: `Analyze these restaurant reviews and identify the top 3 most recommended dishes. 
-          For each dish, provide:
-          1. A descriptive name
-          2. An enticing description that captures the dish's highlights from multiple reviews
-          3. The best customer quote that showcases the dish's appeal
-
-          Reviews to analyze:
-          ${reviewTexts}
-
-          Return the analysis in this exact JSON format:
-          {
-            "dishes": [
-              {
-                "name": "Dish Name",
-                "rank": 1,
-                "description": "Compelling description of the dish based on review analysis",
-                "quote": "Best actual customer quote about this dish"
-              }
-            ]
-          }`
+          "dishes": [
+            {
+              "name": "Dish Name",
+              "description": "Three word description",
+              "quote": "Most specific quote under 12 words",
+              "mentions": number
+            }
+          ]
         }
-      ],
-      response_format: { type: "json_object" }
-    });
 
-    const result = JSON.parse(response.choices[0].message.content);
-    return result.dishes;
-  } catch (error) {
-    console.error('Error analyzing reviews:', error);
-    throw error;
-  }
+        Reviews:
+        ${reviewTexts}`
+      }
+    ],
+    response_format: { type: "json_object" }
+  });
+
+  return {
+    dishes: JSON.parse(response.choices[0].message.content).dishes,
+    tokenCount: response.usage?.total_tokens || 0
+  };
+}
+
+// Concise Prompt
+export async function analyzeDishesFromReviewsConcise(reviews: Review[]) {
+  const reviewTexts = reviews.map(review => review.text).join('\n\n');
+
+  const response = await openai.chat.completions.create({
+    model: "gpt-4-turbo-preview",
+    messages: [
+      {
+        role: "system",
+        content: `Analyze reviews for top dishes.
+        Rules:
+        - 5 word max descriptions
+        - Format: [Main ingredient] + [key feature]
+        - Use specific details
+        Return in JSON format.`
+      },
+      {
+        role: "user",
+        content: `Return dishes in this format:
+        {
+          "dishes": [
+            {
+              "name": "Dish Name",
+              "mentions": number,
+              "description": "5-word description",
+              "quote": "Brief customer quote"
+            }
+          ]
+        }
+
+        Reviews:
+        ${reviewTexts}`
+      }
+    ],
+    response_format: { type: "json_object" }
+  });
+
+  return {
+    dishes: JSON.parse(response.choices[0].message.content).dishes,
+    tokenCount: response.usage?.total_tokens || 0
+  };
+}
+
+// Ultra-Concise Prompt
+export async function analyzeDishesFromReviewsUltraConcise(reviews: Review[]) {
+  const reviewTexts = reviews.map(review => review.text).join('\n\n');
+
+  const response = await openai.chat.completions.create({
+    model: "gpt-4-turbo-preview",
+    messages: [
+      {
+        role: "system",
+        content: `Find top dishes and best quotes.
+        Rules:
+        - 3 word descriptions
+        - Focus on key features
+        - Include memorable quote
+        Return JSON format.`
+      },
+      {
+        role: "user",
+        content: `Return in format:
+        {
+          "dishes": [
+            {
+              "name": "Dish Name",
+              "mentions": number,
+              "description": "3-word highlight",
+              "quote": "Best quote found"
+            }
+          ]
+        }
+
+        Reviews:
+        ${reviewTexts}`
+      }
+    ],
+    response_format: { type: "json_object" }
+  });
+
+  return {
+    dishes: JSON.parse(response.choices[0].message.content).dishes,
+    tokenCount: response.usage?.total_tokens || 0
+  };
+}
+
+// Hybrid Optimized Prompt (Limited to 3)
+export async function analyzeDishesFromReviewsHybrid(reviews: Review[]) {
+  const reviewTexts = reviews.map(review => review.text).join('\n\n');
+
+  const response = await openai.chat.completions.create({
+    model: "gpt-4-turbo-preview",
+    messages: [
+      {
+        role: "system",
+        content: `Analyze reviews and return exactly 3 most mentioned dishes.
+        Rules:
+        - Return only top 3 dishes by mention count
+        - Use exactly 3 words for descriptions
+        - Format: [Texture/Taste] [Main ingredient] [Standout]
+        - Example: "Crispy tender chicken" or "Spicy melting beef"
+        - Find specific, memorable quotes
+        - Skip generic terms like "delicious" or "amazing"
+        Return in JSON format.`
+      },
+      {
+        role: "user",
+        content: `Return top 3 dishes in this format:
+        {
+          "dishes": [
+            {
+              "name": "Dish Name",
+              "description": "Three word description",
+              "quote": "Most specific quote under 12 words",
+              "mentions": number
+            }
+          ]
+        }
+
+        Reviews:
+        ${reviewTexts}`
+      }
+    ],
+    response_format: { type: "json_object" }
+  });
+
+  return {
+    dishes: JSON.parse(response.choices[0].message.content).dishes,
+    tokenCount: response.usage?.total_tokens || 0
+  };
 }

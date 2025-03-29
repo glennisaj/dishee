@@ -1,19 +1,18 @@
 // Restaurant Types
 export interface RestaurantDetails {
   name: string
-  rating: number | null
-  address: string | null
-  reviews?: {  // Make it optional since it might not always be present
-    length: number
-  }
+  rating: number
+  address: string
+  reviews: Review[]
 }
 
 // Dish Analysis Types
 export interface DishAnalysis {
   name: string
-  rank: number
   description: string
-  quote: string
+  quote?: string
+  mentions?: number
+  rank?: number
 }
 
 // API Response Types
@@ -26,7 +25,7 @@ export interface AnalyzeReviewsResponse {
 
 export interface ErrorResponse {
   error: string
-  status: number
+  status: string
 }
 
 // API Request Types
@@ -46,4 +45,10 @@ export interface RecentlyAnalyzedRestaurant {
 export interface RecentlyAnalyzedResponse {
   restaurants: RecentlyAnalyzedRestaurant[]
   status: 'success' | 'error'
+}
+
+export interface Review {
+  text: string
+  rating: number
+  time: number
 }
