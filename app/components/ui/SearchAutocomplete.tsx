@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, Loader2, MapPin } from 'lucide-react'
+import { Search, Loader2, MapPin, X } from 'lucide-react'
 import { getPlacePredictions } from '@/utils/google-places'
 import Image from 'next/image'
 import { getLocationFromIP } from '@/utils/geolocation'
@@ -22,6 +22,7 @@ export default function SearchAutocomplete() {
   const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null)
   const [locationError, setLocationError] = useState<string | null>(null)
   const componentRef = useRef<HTMLDivElement>(null) // Add ref for the component
+  const inputRef = useRef<HTMLInputElement>(null) // Add input ref
 
   // Handle clicks outside the component
   useEffect(() => {
@@ -111,15 +112,22 @@ export default function SearchAutocomplete() {
     setInput('') // Optional: clear input after selection
   }
 
+  const handleClearSearch = () => {
+    setInput('')
+    setPredictions([])
+    inputRef.current?.focus() // Add input ref to focus
+  }
+
   return (
     <div ref={componentRef} className="relative w-full max-w-xl mx-auto">
       <div className="relative">
         <input
+          ref={inputRef} // Add ref to input
           type="text"
           value={input}
           onChange={handleInputChange}
           placeholder="Search for a restaurant..."
-          className="w-full px-4 py-3 pl-10 text-sm bg-white border border-zinc-200 rounded-lg shadow-sm focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
+          className="w-full px-4 py-3 pl-10 pr-10 text-sm bg-white border border-zinc-200 rounded-lg shadow-sm focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
         />
         <div className="absolute inset-y-0 left-0 flex items-center pl-3">
           {isLoading ? (
@@ -128,6 +136,17 @@ export default function SearchAutocomplete() {
             <Search className="w-4 h-4 text-zinc-400" />
           )}
         </div>
+        
+        {/* Clear button */}
+        {input && (
+          <button
+            onClick={handleClearSearch}
+            className="absolute inset-y-0 right-0 flex items-center pr-3 group"
+            aria-label="Clear search"
+          >
+            <X className="w-4 h-4 text-zinc-400 hover:text-zinc-600 transition-colors" />
+          </button>
+        )}
       </div>
 
       {locationError && (
