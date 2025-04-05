@@ -1,16 +1,16 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Loader2, Star, MapPin, Quote } from 'lucide-react'
 import { RestaurantDetails, DishAnalysis } from '@/types/api'
 import { useParams } from 'next/navigation'
 
 export default function ResultsPage() {
   const params = useParams()
-  const placeId = decodeURIComponent(params?.id as string)
+  const placeId = params?.placeId
   
-  console.log('Params received:', params)
-  console.log('PlaceId extracted:', placeId)
+  console.log('Results page params:', params)
+  console.log('Extracted placeId:', placeId)
   
   const [restaurant, setRestaurant] = useState<RestaurantDetails | null>(null)
   const [dishes, setDishes] = useState<DishAnalysis[] | null>(null)
@@ -18,51 +18,67 @@ export default function ResultsPage() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    async function fetchResults() {
-      if (!placeId) {
-        console.error('No placeId provided')
-        setError('Restaurant ID is missing')
-        setIsLoading(false)
-        return
-      }
+    if (!placeId || placeId === 'undefined') {
+      console.error('Invalid or missing placeId')
+      setError('Invalid restaurant ID')
+      setIsLoading(false)
+      return
+    }
 
+    async function fetchResults() {
       try {
-        console.log('Starting analysis for placeId:', placeId)
+        console.log('Fetching results for placeId:', placeId)
         
         const response = await fetch('/api/analyze-reviews', {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
-            'Accept': 'application/json'
           },
-          body: JSON.stringify({ 
-            placeId: placeId,
-            forceRefresh: true
-          })
+          body: JSON.stringify({ placeId })
         })
-
-        console.log('Response status:', response.status)
 
         const data = await response.json()
         console.log('API Response:', data)
 
         if (!response.ok) {
-          throw new Error(data.error || 'Failed to fetch results')
+          throw new Error(data.error?.message || JSON.stringify(data.error) || 'Failed to fetch results')
         }
 
-        setRestaurant(data.restaurantName)
-        setDishes(data.dishes)
-        setIsLoading(false)
+        // Make sure we're setting the correct data structure
+        setRestaurant({
+          name: data.details?.name || '',
+          rating: data.details?.rating || 0,
+          address: data.details?.formatted_address || '',
+          placeId: data.placeId || placeId
+        })
+        
+        setDishes(data.analysis || [])
       } catch (err) {
-        console.error('Error fetching results:', err)
+        console.error('Error in fetchResults:', err)
         setError(err instanceof Error ? err.message : 'An error occurred')
+      } finally {
         setIsLoading(false)
       }
     }
 
-    console.log('Results page mounted with placeId:', placeId)
     fetchResults()
   }, [placeId])
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="w-8 h-8 animate-spin" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-red-500">{error}</div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-white">
@@ -120,20 +136,6 @@ export default function ResultsPage() {
                 </div>
               ))}
             </div>
-          </div>
-        )}
-
-        {isLoading && (
-          <div className="flex flex-col items-center justify-center min-h-[400px]">
-            <Loader2 className="w-8 h-8 animate-spin text-violet-600 mb-4" />
-            <p className="text-zinc-600">Analyzing restaurant reviews...</p>
-          </div>
-        )}
-
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <h2 className="text-red-700 font-semibold mb-2">Error</h2>
-            <p className="text-red-600">{error}</p>
           </div>
         )}
       </div>

@@ -1,31 +1,43 @@
 import { NextResponse } from 'next/server'
-import { getRecentRestaurants } from '@/utils/cache-utils'
+import { redis } from '@/utils/redis'
 
 export async function GET() {
   try {
-    // Add debug logging
-    console.log('Fetching recent restaurants...')
-    
-    const restaurants = await getRecentRestaurants()
-    
-    // Log what we're returning
-    console.log('Recent restaurants:', restaurants)
-    
-    // Ensure we're returning the correct structure
-    return NextResponse.json({ 
-      restaurants: restaurants,
-      status: 'success'
-    })
+    const recentRestaurants = await redis.get('recent:restaurants')
+    console.log('Raw Redis data:', recentRestaurants)
+
+    if (!recentRestaurants) {
+      console.log('No restaurants found in Redis')
+      return NextResponse.json([])
+    }
+
+    // Handle the data based on its type
+    let restaurants = typeof recentRestaurants === 'string' 
+      ? JSON.parse(recentRestaurants) 
+      : recentRestaurants
+
+    // Ensure we have an array
+    if (!Array.isArray(restaurants)) {
+      console.log('Converting non-array to array:', restaurants)
+      restaurants = []
+    }
+
+    // Validate and clean the data
+    const validRestaurants = restaurants
+      .filter(r => r && r.placeId && r.name) // Ensure required fields exist
+      .map(r => ({
+        placeId: r.placeId,
+        name: r.name,
+        address: r.address || '',
+        rating: r.rating || 0,
+        timestamp: r.timestamp || new Date().toISOString()
+      }))
+
+    console.log('Returning restaurants:', validRestaurants)
+    return NextResponse.json(validRestaurants)
+
   } catch (error) {
     console.error('Error in recent-restaurants API:', error)
-    // Return a proper error response
-    return NextResponse.json(
-      { 
-        restaurants: [],
-        status: 'error',
-        message: 'Failed to fetch recent restaurants'
-      }, 
-      { status: 500 }
-    )
+    return NextResponse.json([])
   }
 }
