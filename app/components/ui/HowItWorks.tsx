@@ -1,6 +1,6 @@
 export default function HowItWorks() {
   return (
-    <div className="py-16 sm:py-20">
+    <section className="bg-white py-16 sm:py-20">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="mx-auto max-w-2xl lg:text-center">
           <h2 className="text-base font-semibold leading-7 text-violet-600">How It Works</h2>
@@ -52,6 +52,6 @@ export default function HowItWorks() {
           </dl>
         </div>
       </div>
-    </div>
+    </section>
   )
 }

@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     const placeDetails = await getPlaceDetails(placeId)
 
     // Analyze reviews immediately
-    const reviews = placeDetails.reviews.map(review => ({
+    const reviews = placeDetails.reviews.map((review: { text: any; rating: any }) => ({
       text: review.text,
       rating: review.rating
     }))
