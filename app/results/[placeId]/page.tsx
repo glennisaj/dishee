@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react'
 import { Loader2, Star, MapPin, Quote } from 'lucide-react'
 import { RestaurantDetails, DishAnalysis } from '@/types/api'
 import { useParams } from 'next/navigation'
+import { LoadingState } from '@/app/components/ui/LoadingState'
 
 export default function ResultsPage() {
   const params = useParams()
@@ -64,20 +65,24 @@ export default function ResultsPage() {
     fetchResults()
   }, [placeId])
 
-  if (isLoading) {
+  if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="w-8 h-8 animate-spin" />
+      <div className="min-h-[400px] flex items-center justify-center">
+        <div className="text-center text-red-600">
+          <p className="text-lg font-medium">{error}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="mt-4 px-4 py-2 bg-black text-white rounded-lg hover:bg-zinc-800"
+          >
+            Try Again
+          </button>
+        </div>
       </div>
     )
   }
 
-  if (error) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-red-500">{error}</div>
-      </div>
-    )
+  if (isLoading) {
+    return <LoadingState />
   }
 
   return (

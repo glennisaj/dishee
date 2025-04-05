@@ -40,3 +40,36 @@ export async function POST(request: Request) {
     )
   }
 }
+
+// CURRENT (UNSAFE) - Client-side exposure
+const apiKey = process.env.GOOGLE_PLACES_API_KEY
+
+// SAFER APPROACH - Create a server-side endpoint
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url)
+  const query = searchParams.get('query')
+  
+  // Use server-side environment variable
+  const apiKey = process.env.GOOGLE_PLACES_API_KEY // Remove NEXT_PUBLIC_
+  
+  try {
+    const response = await fetch(
+      `https://places.googleapis.com/v1/places:searchText`,
+      {
+        method: 'POST',
+        headers: new Headers({
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': apiKey || '',
+          'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress'
+        }),
+        body: JSON.stringify({ textQuery: query })
+      }
+    )
+    
+    const data = await response.json()
+    return Response.json(data)
+  } catch (error) {
+    console.error('Places API error:', error)
+    return Response.json({ error: 'Failed to fetch places' }, { status: 500 })
+  }
+}

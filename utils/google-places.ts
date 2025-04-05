@@ -1,10 +1,10 @@
 // Verify API key is available
-if (!process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY) {
+if (!process.env.GOOGLE_PLACES_API_KEY) {
   throw new Error('Missing GOOGLE_PLACES_API_KEY environment variable')
 }
 
 // Use this key in your API calls
-const apiKey = process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY
+const apiKey = process.env.GOOGLE_PLACES_API_KEY
 
 // URL validation regex patterns
 const GOOGLE_MAPS_PATTERNS = {
@@ -82,7 +82,7 @@ export async function extractPlaceId(url: string): Promise<string> {
 }
 
 export async function findPlaceId(query: string): Promise<string> {
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY;
+  const apiKey = process.env.GOOGLE_PLACES_API_KEY;
   
   if (!apiKey) {
     throw new Error('Google Places API key is not configured');
@@ -209,7 +209,7 @@ interface PlaceDetails {
 
 // Add this function to check API key
 export function verifyGoogleApiKey() {
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY
+  const apiKey = process.env.GOOGLE_PLACES_API_KEY
   console.log('API Key available:', Boolean(apiKey))
   console.log('API Key length:', apiKey?.length)
   // Don't log the full key for security
@@ -219,7 +219,7 @@ export function verifyGoogleApiKey() {
 
 // Use in your getPlaceDetails function
 export async function getPlaceDetails(placeId: string) {
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY
+  const apiKey = process.env.GOOGLE_PLACES_API_KEY
   
   if (!verifyGoogleApiKey()) {
     throw new Error('Google Places API key is not configured correctly')
@@ -263,6 +263,13 @@ export async function getPlaceDetails(placeId: string) {
     console.error('Error in getPlaceDetails:', error)
     throw error
   }
+}
+
+interface Prediction {
+  placeId: string;
+  name: string;
+  address: string;
+  id: string; // For backward compatibility
 }
 
 export async function getPlacePredictions(

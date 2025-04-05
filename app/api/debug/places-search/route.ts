@@ -19,7 +19,7 @@ export async function GET(request: Request) {
   } : {}
 
   const response = await fetch(
-    `https://places.googleapis.com/v1/places:searchText?key=${process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY}`,
+    `https://places.googleapis.com/v1/places:searchText?key=${process.env.GOOGLE_PLACES_API_KEY}`,
     {
       method: 'POST',
       headers: {

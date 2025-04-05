@@ -1,5 +1,13 @@
 import { cn } from '@/lib/utils'
 
+interface SearchResultProps {
+  prediction: {
+    name: string
+    address: string
+  }
+  onSelect: () => void
+}
+
 export function SearchResult({ prediction, onSelect }: SearchResultProps) {
   return (
     <button
@@ -16,4 +24,3 @@ export function SearchResult({ prediction, onSelect }: SearchResultProps) {
       <div className="text-sm text-zinc-500">{prediction.address}</div>
     </button>
   )
-}

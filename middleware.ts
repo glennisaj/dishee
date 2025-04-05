@@ -1,47 +1,43 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { rateLimit } from '@/lib/rate-limit'
 
-// Simple in-memory rate limiting
-const rateLimit = new Map<string, { count: number; timestamp: number }>()
+const limiter = rateLimit({
+  interval: 60 * 1000, // 1 minute
+  uniqueTokenPerInterval: 500
+})
 
 export async function middleware(request: NextRequest) {
-  // Skip rate limiting for non-API routes
-  if (!request.nextUrl.pathname.startsWith('/api/')) {
-    return NextResponse.next()
-  }
-
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0] ?? request.socket?.remoteAddress ?? '127.0.0.1'
-  const now = Date.now()
-  const windowMs = 10000 // 10 seconds
-  const maxRequests = 50 // requests per window
-
-  const current = rateLimit.get(ip) ?? { count: 0, timestamp: now }
-
-  // Reset if window has passed
-  if (now - current.timestamp > windowMs) {
-    current.count = 0
-    current.timestamp = now
-  }
-
-  if (current.count >= maxRequests) {
-    return new NextResponse('Too many requests', {
-      status: 429,
-      headers: {
-        'Retry-After': `${Math.ceil((current.timestamp + windowMs - now) / 1000)}`
+  // Only apply rate limiting to API routes
+  if (request.nextUrl.pathname.startsWith('/api/')) {
+    try {
+      await limiter.check(request, 50) // Increased to 50 requests per minute for testing
+      const referer = request.headers.get('referer')
+      // Comment out or remove this check temporarily
+      /*
+      if (!referer || !referer.includes('your-domain.com')) {
+        return new NextResponse('Unauthorized', { status: 401 })
       }
-    })
+      */
+      return NextResponse.next()
+    } catch {
+      return new NextResponse('Too Many Requests', { status: 429 })
+    }
   }
 
-  current.count++
-  rateLimit.set(ip, current)
-
+  // Add security headers for all routes
   const response = NextResponse.next()
-  response.headers.set('X-RateLimit-Limit', maxRequests.toString())
-  response.headers.set('X-RateLimit-Remaining', (maxRequests - current.count).toString())
+  response.headers.set('X-Frame-Options', 'DENY')
+  response.headers.set('X-Content-Type-Options', 'nosniff')
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+  response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
   
   return response
 }
 
 export const config = {
-  matcher: '/api/:path*',
+  matcher: [
+    '/api/:path*',
+    '/((?!_next/static|_next/image|favicon.ico).*)',
+  ],
 }
