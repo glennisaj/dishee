@@ -21,7 +21,7 @@ export default function AboutPage() {
             </h2>
             <p className="text-lg text-zinc-600 leading-relaxed">
               Everyone has been vibe coding, so I thought I'd join in. 
-              Using AI tools like Cursor, Replit, and the OpenAI API, I've created this site
+              Using AI tools like Cursor, Vercel,  and the OpenAI API, I've created this site
               inspired by trends I've observed on social media(Tiktok influencers posting places to eat and what to get), my friends doing the same, and having my own interest in food.
             </p>
           </section>
@@ -51,10 +51,10 @@ export default function AboutPage() {
 
             <div className="mt-8 p-6 bg-violet-50 rounded-xl">
               <p className="text-lg text-violet-900 font-medium">
-                To Hiring Managers and VCs:{' '}
+                To any hiring managers who are looking for PMs:{' '}
                 <span className="text-violet-700">
                   If you find this project intriguing, I'm open to conversations about 
-                  potential opportunities and collaborations.
+                  potential opportunities.
                 </span>
               </p>
             </div>
