@@ -284,7 +284,8 @@ export async function getPlaceDetails(placeId: string) {
       cuisineType: data.primaryType,
       businessHours: data.regularOpeningHours ? {
         open: data.regularOpeningHours.weekdayDescriptions?.[0] || '',
-        close: data.regularOpeningHours.weekdayDescriptions?.[data.regularOpeningHours.weekdayDescriptions.length - 1] || ''
+        close: data.regularOpeningHours.weekdayDescriptions?.[data.regularOpeningHours.weekdayDescriptions.length - 1] || '',
+        weekdayDescriptions: data.regularOpeningHours.weekdayDescriptions || []
       } : undefined,
       phoneNumber: data.internationalPhoneNumber,
       priceRange,
