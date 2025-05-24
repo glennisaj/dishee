@@ -9,9 +9,10 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-interface Review {
+interface ReviewData {
   text: string;
   rating: number;
+  time?: string;
 }
 
 interface DishAnalysis {
@@ -61,8 +62,15 @@ export async function analyzeDishesFromReviews(reviews: Review[]) {
     response_format: { type: "json_object" }
   });
 
+  const content = response.choices[0].message.content;
+  if (!content) {
+    throw new Error('Empty response from OpenAI');
+  }
+  const parsedContent = JSON.parse(content);
+  const dishes = parsedContent.dishes;
+
   return {
-    dishes: JSON.parse(response.choices[0].message.content).dishes,
+    dishes,
     tokenCount: response.usage?.total_tokens || 0
   };
 }
@@ -104,8 +112,15 @@ export async function analyzeDishesFromReviewsConcise(reviews: Review[]) {
     response_format: { type: "json_object" }
   });
 
+  const content = response.choices[0].message.content;
+  if (!content) {
+    throw new Error('Empty response from OpenAI');
+  }
+  const parsedContent = JSON.parse(content);
+  const dishes = parsedContent.dishes;
+
   return {
-    dishes: JSON.parse(response.choices[0].message.content).dishes,
+    dishes,
     tokenCount: response.usage?.total_tokens || 0
   };
 }
@@ -147,8 +162,15 @@ export async function analyzeDishesFromReviewsUltraConcise(reviews: Review[]) {
     response_format: { type: "json_object" }
   });
 
+  const content = response.choices[0].message.content;
+  if (!content) {
+    throw new Error('Empty response from OpenAI');
+  }
+  const parsedContent = JSON.parse(content);
+  const dishes = parsedContent.dishes;
+
   return {
-    dishes: JSON.parse(response.choices[0].message.content).dishes,
+    dishes,
     tokenCount: response.usage?.total_tokens || 0
   };
 }
@@ -193,8 +215,15 @@ export async function analyzeDishesFromReviewsHybrid(reviews: Review[]) {
     response_format: { type: "json_object" }
   });
 
+  const content = response.choices[0].message.content;
+  if (!content) {
+    throw new Error('Empty response from OpenAI');
+  }
+  const parsedContent = JSON.parse(content);
+  const dishes = parsedContent.dishes;
+
   return {
-    dishes: JSON.parse(response.choices[0].message.content).dishes,
+    dishes,
     tokenCount: response.usage?.total_tokens || 0
   };
 }

@@ -14,7 +14,8 @@ import { getRestaurantWithDishes, saveRestaurantAnalysis } from '@/utils/db'
 import { 
   AnalyzeReviewsRequest, 
   AnalyzeReviewsResponse, 
-  ErrorResponse 
+  ErrorResponse,
+  RestaurantDetails
 } from '@/types/api'
 
 // Add interface for review structure
@@ -66,8 +67,22 @@ export async function POST(request: Request) {
       const analysisResult = await analyzeDishesFromReviews(restaurantData.reviews)
       dishes = analysisResult.dishes
       
+      // Transform the data to match RestaurantDetails interface
+      const transformedData: RestaurantDetails = {
+        name: restaurantData.name,
+        rating: restaurantData.rating,
+        address: restaurantData.address,
+        reviews: restaurantData.reviews,
+        cuisineType: restaurantData.cuisineType,
+        businessHours: restaurantData.businessHours,
+        phoneNumber: restaurantData.phoneNumber,
+        priceRange: restaurantData.priceRange,
+        totalReviews: restaurantData.totalReviews,
+        lastFetched: new Date().toISOString()
+      }
+      
       // Cache the results
-      await setRestaurantInCache(placeId, restaurantData)
+      await setRestaurantInCache(placeId, transformedData)
       await setAnalysisInCache(placeId, {
         dishes: dishes,
         lastAnalyzed: new Date().toISOString()

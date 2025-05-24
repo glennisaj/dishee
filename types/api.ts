@@ -4,6 +4,15 @@ export interface RestaurantDetails {
   rating: number
   address: string
   reviews: Review[]
+  cuisineType?: string
+  businessHours?: {
+    open: string
+    close: string
+  }
+  phoneNumber?: string
+  priceRange?: string
+  totalReviews?: number
+  lastFetched: string
 }
 
 // Dish Analysis Types
@@ -35,11 +44,14 @@ export interface AnalyzeReviewsRequest {
 
 // Recently Analyzed Types
 export interface RecentlyAnalyzedRestaurant {
-  id: string
+  placeId: string
   name: string
   address: string
   rating: number
-  last_analyzed: string
+  timestamp: string
+  cuisineType?: string
+  priceRange?: string
+  totalReviews?: number
 }
 
 export interface RecentlyAnalyzedResponse {
@@ -50,5 +62,6 @@ export interface RecentlyAnalyzedResponse {
 export interface Review {
   text: string
   rating: number
-  time: number
+  time?: string
+  author_name?: string
 }

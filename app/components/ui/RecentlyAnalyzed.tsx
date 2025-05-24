@@ -88,15 +88,16 @@ export default function RecentlyAnalyzed() {
   People recently viewed these restaurants
 </p>
         
-        <div className="grid gap-4 p-4">
+        <div className="grid gap-6 p-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {restaurants.slice(0, 4).map((restaurant) => (
-            <button
+            <div
               key={restaurant.placeId}
               onClick={() => handleRestaurantClick(restaurant)}
-              className="w-full text-left p-4 rounded-lg border border-zinc-200 hover:border-violet-500 transition-colors"
+              className="cursor-pointer bg-white rounded-2xl shadow-md border border-zinc-100 hover:shadow-lg transition-shadow duration-200 flex flex-col items-stretch min-h-[260px] p-6"
+              style={{ boxShadow: '0 2px 12px 0 rgba(0,0,0,0.06)' }}
             >
-              <div className="space-y-1">
-                <h3 className="font-bold text-black truncate">
+              <div className="space-y-1 flex-1">
+                <h3 className="font-bold text-black text-lg truncate">
                   {restaurant.name}
                 </h3>
                 <p className="text-sm text-zinc-600">
@@ -104,9 +105,9 @@ export default function RecentlyAnalyzed() {
                 </p>
               </div>
               {restaurant.rating && (
-                <div className="text-sm text-zinc-600">Rating: {restaurant.rating}⭐</div>
+                <div className="text-sm text-zinc-600 mt-2">Rating: {restaurant.rating}⭐</div>
               )}
-            </button>
+            </div>
           ))}
         </div>
       </div>

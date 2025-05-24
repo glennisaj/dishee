@@ -233,7 +233,7 @@ export async function getPlaceDetails(placeId: string) {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'X-Goog-FieldMask': 'id,displayName,formattedAddress,rating,reviews,types,primaryType,editorialSummary'
+          'X-Goog-FieldMask': 'id,displayName,formattedAddress,rating,reviews,types,primaryType,editorialSummary,regularOpeningHours,internationalPhoneNumber,priceLevel,userRatingCount'
         }
       }
     )
@@ -245,19 +245,51 @@ export async function getPlaceDetails(placeId: string) {
     }
 
     const data = await response.json()
+    console.log('Google Places API full response:', data)
     
-    // Transform the response to match your expected format
+    // Check for both priceLevel and price_level
+    let priceLevelValue = data.priceLevel || data.price_level;
+    let priceRange = 'Unknown';
+    if (typeof priceLevelValue === 'string') {
+      switch (priceLevelValue) {
+        case 'PRICE_LEVEL_FREE':
+          priceRange = 'Free';
+          break;
+        case 'PRICE_LEVEL_INEXPENSIVE':
+          priceRange = '$';
+          break;
+        case 'PRICE_LEVEL_MODERATE':
+          priceRange = '$$';
+          break;
+        case 'PRICE_LEVEL_EXPENSIVE':
+          priceRange = '$$$';
+          break;
+        case 'PRICE_LEVEL_VERY_EXPENSIVE':
+          priceRange = '$$$$';
+          break;
+        default:
+          priceRange = 'Unknown';
+      }
+    }
     return {
-      place_id: data.id,
       name: data.displayName?.text,
-      formatted_address: data.formattedAddress,
       rating: data.rating,
+      address: data.formattedAddress,
       reviews: data.reviews?.map((review: any) => ({
         text: review.text?.text,
         rating: review.rating,
         time: review.relativePublishTimeDescription,
         author_name: review.authorAttribution?.displayName
-      })) || []
+      })) || [],
+      cuisineType: data.primaryType,
+      businessHours: data.regularOpeningHours ? {
+        open: data.regularOpeningHours.weekdayDescriptions?.[0] || '',
+        close: data.regularOpeningHours.weekdayDescriptions?.[data.regularOpeningHours.weekdayDescriptions.length - 1] || ''
+      } : undefined,
+      phoneNumber: data.internationalPhoneNumber,
+      priceRange,
+      totalReviews: data.userRatingCount,
+      lastFetched: new Date().toISOString()
     }
   } catch (error) {
     console.error('Error in getPlaceDetails:', error)

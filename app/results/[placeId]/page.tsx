@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { Loader2, Star, MapPin, Quote } from 'lucide-react'
+import { Loader2, Star, MapPin, Quote, Clock, Phone } from 'lucide-react'
 import { RestaurantDetails, DishAnalysis } from '@/types/api'
 import { useParams } from 'next/navigation'
 import { LoadingState } from '@/app/components/ui/LoadingState'
@@ -49,8 +49,14 @@ export default function ResultsPage() {
         setRestaurant({
           name: data.details?.name || '',
           rating: data.details?.rating || 0,
-          address: data.details?.formatted_address || '',
-          placeId: data.placeId || placeId
+          address: data.details?.address || '',
+          reviews: data.details?.reviews || [],
+          lastFetched: data.details?.lastFetched || new Date().toISOString(),
+          cuisineType: data.details?.cuisineType || '',
+          businessHours: data.details?.businessHours || { open: '', close: '' },
+          phoneNumber: data.details?.phoneNumber || '',
+          priceRange: data.details?.priceRange || '',
+          totalReviews: data.details?.totalReviews || 0,
         })
         
         setDishes(data.analysis || [])
@@ -93,15 +99,54 @@ export default function ResultsPage() {
             <h1 className="text-4xl font-bold text-zinc-900 mb-3">
               {restaurant.name}
             </h1>
-            <div className="flex items-center gap-4 mb-3">
-              <div className="flex items-center text-amber-500">
-                <Star className="w-5 h-5 fill-current" />
-                <span className="ml-1 font-semibold">{restaurant.rating}</span>
-              </div>
+            <div className="flex items-center gap-2 mb-4">
+              <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
+              <span className="ml-1 font-semibold text-amber-700 text-lg">{restaurant.rating}</span>
+              {restaurant.totalReviews && (
+                <span className="text-zinc-600 text-base ml-2">({restaurant.totalReviews} reviews)</span>
+              )}
             </div>
-            <div className="flex items-center text-zinc-600">
+            <div className="flex items-center gap-2 mb-4">
+              {restaurant.cuisineType && (
+                <span className="bg-yellow-100 text-yellow-800 rounded-full px-3 py-1 text-sm font-semibold">
+                  {restaurant.cuisineType.replace(/_/g, ' ').replace(/Restaurant/gi, '').trim().replace(/\b\w/g, l => l.toUpperCase())}
+                </span>
+              )}
+              {restaurant.priceRange && restaurant.priceRange !== 'Unknown' && (
+                <span className="bg-yellow-100 text-yellow-800 rounded-full px-3 py-1 text-sm font-semibold">
+                  {restaurant.priceRange}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center text-zinc-600 mb-2">
               <MapPin className="w-4 h-4 mr-2" />
               <p>{restaurant.address}</p>
+            </div>
+            {/* Hours + Phone (stacked vertically for mobile) */}
+            <div className="flex flex-col gap-1 text-zinc-700 text-base">
+              {restaurant.businessHours && (
+                <span className="flex items-center gap-1">
+                  <Clock className="w-4 h-4 mr-1 text-zinc-500" />
+                  {restaurant.businessHours.open} - {restaurant.businessHours.close}
+                </span>
+              )}
+              {restaurant.phoneNumber && (
+                <span className="flex items-center gap-1">
+                  <Phone className="w-4 h-4 mr-1 text-zinc-500" />
+                  {(() => {
+                    // Remove spaces, dashes, and parentheses for normalization
+                    const digits = restaurant.phoneNumber.replace(/[^\d\+]/g, '');
+                    // US number: +1XXXXXXXXXX or 1XXXXXXXXXX
+                    if (/^(\+1|1)?(\d{10})$/.test(digits)) {
+                      // Remove country code if present
+                      const num = digits.replace(/^\+?1/, '');
+                      return `(${num.slice(0,3)}) ${num.slice(3,6)}-${num.slice(6,10)}`;
+                    }
+                    // Otherwise, show as-is
+                    return restaurant.phoneNumber;
+                  })()}
+                </span>
+              )}
             </div>
           </div>
         )}
