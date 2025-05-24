@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { redis } from '@/utils/redis'
+import { RecentlyAnalyzedRestaurant } from '@/types/api'
 
 export async function GET() {
   try {
@@ -23,14 +24,17 @@ export async function GET() {
     }
 
     // Validate and clean the data
-    const validRestaurants = restaurants
-      .filter(r => r && r.placeId && r.name) // Ensure required fields exist
-      .map(r => ({
+    const validRestaurants = (restaurants as RecentlyAnalyzedRestaurant[])
+      .filter((r: RecentlyAnalyzedRestaurant) => r && r.placeId && r.name) // Ensure required fields exist
+      .map((r: RecentlyAnalyzedRestaurant) => ({
         placeId: r.placeId,
         name: r.name,
         address: r.address || '',
         rating: r.rating || 0,
-        timestamp: r.timestamp || new Date().toISOString()
+        timestamp: r.timestamp || new Date().toISOString(),
+        cuisineType: r.cuisineType || '',
+        priceRange: r.priceRange || '',
+        totalReviews: r.totalReviews || 0,
       }))
 
     console.log('Returning restaurants:', validRestaurants)

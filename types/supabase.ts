@@ -19,6 +19,14 @@ export interface Database {
           last_analyzed: string | null
           created_at: string
           updated_at: string
+          cuisine_type: string | null
+          business_hours: {
+            open: string
+            close: string
+          } | null
+          phone_number: string | null
+          price_range: string | null
+          total_reviews: number | null
         }
         Insert: {
           id: string
@@ -29,6 +37,14 @@ export interface Database {
           last_analyzed?: string | null
           created_at?: string
           updated_at?: string
+          cuisine_type?: string | null
+          business_hours?: {
+            open: string
+            close: string
+          } | null
+          phone_number?: string | null
+          price_range?: string | null
+          total_reviews?: number | null
         }
         Update: {
           id?: string
@@ -39,6 +55,14 @@ export interface Database {
           last_analyzed?: string | null
           created_at?: string
           updated_at?: string
+          cuisine_type?: string | null
+          business_hours?: {
+            open: string
+            close: string
+          } | null
+          phone_number?: string | null
+          price_range?: string | null
+          total_reviews?: number | null
         }
       }
       dishes: {

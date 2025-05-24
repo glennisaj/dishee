@@ -14,7 +14,8 @@ import { getRestaurantWithDishes, saveRestaurantAnalysis } from '@/utils/db'
 import { 
   AnalyzeReviewsRequest, 
   AnalyzeReviewsResponse, 
-  ErrorResponse 
+  ErrorResponse,
+  RestaurantDetails
 } from '@/types/api'
 
 // Add interface for review structure
@@ -49,7 +50,7 @@ export async function POST(request: Request) {
     console.log('Fetching details for placeId:', placeId) // Debug log
     const placeDetails = await getPlaceDetails(placeId)
     
-    let restaurantData;
+    let restaurantData: RestaurantDetails;
     let dishes;
     
     const cachedRestaurant = await getRestaurantFromCache(placeId)
@@ -66,8 +67,22 @@ export async function POST(request: Request) {
       const analysisResult = await analyzeDishesFromReviews(restaurantData.reviews)
       dishes = analysisResult.dishes
       
+      // Transform the data to match RestaurantDetails interface
+      const transformedData: RestaurantDetails = {
+        name: restaurantData.name,
+        rating: restaurantData.rating,
+        address: restaurantData.address,
+        reviews: restaurantData.reviews,
+        cuisineType: restaurantData.cuisineType,
+        businessHours: restaurantData.businessHours,
+        phoneNumber: restaurantData.phoneNumber,
+        priceRange: restaurantData.priceRange,
+        totalReviews: restaurantData.totalReviews,
+        lastFetched: new Date().toISOString()
+      }
+      
       // Cache the results
-      await setRestaurantInCache(placeId, restaurantData)
+      await setRestaurantInCache(placeId, transformedData)
       await setAnalysisInCache(placeId, {
         dishes: dishes,
         lastAnalyzed: new Date().toISOString()
@@ -81,8 +96,11 @@ export async function POST(request: Request) {
         name: restaurantData.name,
         address: restaurantData.address,
         rating: restaurantData.rating,
-        timestamp: new Date().toISOString()
-      })
+        timestamp: new Date().toISOString(),
+        cuisineType: restaurantData.cuisineType,
+        priceRange: restaurantData.priceRange,
+        totalReviews: restaurantData.totalReviews,
+      } as import('@/types/api').RecentlyAnalyzedRestaurant)
     } catch (e) {
       console.error('Failed to update recent restaurants:', e)
       // Continue execution even if recent restaurants update fails

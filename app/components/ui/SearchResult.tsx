@@ -1,11 +1,14 @@
-import { cn } from '@/lib/utils'
-
 interface SearchResultProps {
   prediction: {
     name: string
     address: string
   }
   onSelect: () => void
+}
+
+// If '@/lib/utils' does not exist, define cn here
+function cn(...classes: (string | undefined | false)[]) {
+  return classes.filter(Boolean).join(' ')
 }
 
 export function SearchResult({ prediction, onSelect }: SearchResultProps) {
@@ -24,3 +27,4 @@ export function SearchResult({ prediction, onSelect }: SearchResultProps) {
       <div className="text-sm text-zinc-500">{prediction.address}</div>
     </button>
   )
+}

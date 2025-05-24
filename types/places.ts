@@ -10,6 +10,14 @@ export interface GooglePlace {
   url?: string
   website?: string
   formatted_address?: string
+  cuisineType?: string
+  businessHours?: {
+    open: string
+    close: string
+  }
+  phoneNumber?: string
+  priceRange?: string
+  totalReviews?: number
 }
 
 export interface Review {
