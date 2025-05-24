@@ -8,6 +8,7 @@ export interface RestaurantDetails {
   businessHours?: {
     open: string
     close: string
+    weekdayDescriptions?: string[]
   }
   phoneNumber?: string
   priceRange?: string

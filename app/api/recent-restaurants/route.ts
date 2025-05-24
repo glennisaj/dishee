@@ -31,7 +31,10 @@ export async function GET() {
         name: r.name,
         address: r.address || '',
         rating: r.rating || 0,
-        timestamp: r.timestamp || new Date().toISOString()
+        timestamp: r.timestamp || new Date().toISOString(),
+        cuisineType: r.cuisineType || '',
+        priceRange: r.priceRange || '',
+        totalReviews: r.totalReviews || 0,
       }))
 
     console.log('Returning restaurants:', validRestaurants)

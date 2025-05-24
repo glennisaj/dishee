@@ -1,4 +1,5 @@
 import { redis, CACHE_TIMES } from './redis'
+import { RecentlyAnalyzedRestaurant } from '@/types/api'
 
 // Define strict types for our data structures
 interface RestaurantDetails {
@@ -24,15 +25,6 @@ interface DishAnalysis {
 interface AnalysisResults {
   dishes: DishAnalysis[]  // Single level dishes array
   lastAnalyzed: string
-}
-
-// Update the interface to standardize fields
-export interface RecentlyAnalyzedRestaurant {
-  placeId: string;  // Standardized to placeId
-  name: string;
-  address: string;
-  rating: number;
-  timestamp: string;  // Standardized to timestamp
 }
 
 export async function getRestaurantFromCache(placeId: string): Promise<RestaurantDetails | null> {
@@ -142,9 +134,17 @@ export async function addToRecentRestaurants(restaurant: RecentlyAnalyzedRestaur
     const updated = currentList
       .filter(r => r.placeId !== restaurant.placeId)
     
-    // Add new entry at the start
-    updated.unshift(restaurant)
-    
+    // Add new entry at the start, including new fields
+    updated.unshift({
+      placeId: restaurant.placeId,
+      name: restaurant.name,
+      address: restaurant.address,
+      rating: restaurant.rating,
+      timestamp: restaurant.timestamp,
+      cuisineType: restaurant.cuisineType || '',
+      priceRange: restaurant.priceRange || '',
+      totalReviews: restaurant.totalReviews || 0,
+    })
     // Keep only the last 5
     const limited = updated.slice(0, 5)
     
@@ -168,13 +168,16 @@ export async function getRecentRestaurants(): Promise<RecentlyAnalyzedRestaurant
       return []
     }
     
-    // Standardize any old format entries
+    // Standardize any old format entries and include new fields
     return recent.map(r => ({
       placeId: r.placeId || r.id,
       name: r.name,
       address: r.address,
       rating: r.rating,
-      timestamp: r.timestamp || r.last_analyzed || new Date().toISOString()
+      timestamp: r.timestamp || r.last_analyzed || new Date().toISOString(),
+      cuisineType: r.cuisineType || '',
+      priceRange: r.priceRange || '',
+      totalReviews: r.totalReviews || 0,
     }))
   } catch (error) {
     console.error('Error getting recent restaurants:', error)
