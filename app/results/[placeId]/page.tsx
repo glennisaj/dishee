@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { Loader2, Star, MapPin, Quote, Clock, Phone, ChevronDown, ChevronUp } from 'lucide-react'
+import { Loader2, Star, MapPin, Quote, Clock, Phone, ChevronDown, ChevronUp, Share2 } from 'lucide-react'
 import { RestaurantDetails, DishAnalysis } from '@/types/api'
 import { useParams } from 'next/navigation'
 import { LoadingState } from '@/app/components/ui/LoadingState'
@@ -81,6 +81,20 @@ export default function ResultsPage() {
     const today = days[new Date().getDay()]
     const todayHours = weekdayDescriptions.find(desc => desc.startsWith(today))
     return todayHours || ''
+  }
+
+  function handleShare() {
+    const url = window.location.href;
+    const title = restaurant?.name || 'Check out this restaurant!';
+    if (navigator.share) {
+      navigator.share({
+        title,
+        url,
+      });
+    } else {
+      navigator.clipboard.writeText(url);
+      alert('Link copied to clipboard!');
+    }
   }
 
   if (error) {
@@ -197,6 +211,14 @@ export default function ResultsPage() {
                 </span>
               )}
             </div>
+            <button
+              onClick={handleShare}
+              className="flex items-center gap-1 px-3 py-1 rounded bg-violet-100 text-violet-700 font-semibold hover:bg-violet-200 transition"
+              title="Share this page"
+            >
+              <Share2 className="w-4 h-4" />
+              Share
+            </button>
           </div>
         )}
 
